@@ -20,6 +20,8 @@ user_db = client.user_db
 
 quotes_collection = quotes_db.quotes_collection
 comments_collection = quotes_db.comments_collection
+user_collection = quotes_db.user
+messages_collection = quotes_db.messages_collection
 
 import uuid
 
@@ -393,3 +395,73 @@ def comment_delete(comment_id):
     if comment['author'] == user or quote['owner'] == user:
         comments_collection.delete_one({"_id": ObjectId(comment_id)})
         return redirect(f'/quote/{comment["quote_id"]}')
+    
+@app.route('/profile/<username>', methods=['GET'])
+def view_profile(username):
+    session_id = request.cookies.get("session_id", None)
+    if not session_id:
+        return redirect("/login")
+
+    session_data = session_db.session_collection.find_one({"session_id": session_id})
+    if not session_data:
+        return redirect("/login")
+
+    user_data = user_collection.find_one({"username": username})
+    if not user_data:
+        return "User not found", 404
+
+    return render_template("profile.html", user_data=user_data)
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+def edit_profile():
+    session_id = request.cookies.get("session_id", None)
+    if not session_id:
+        return redirect("/login")
+
+    session_data = session_db.session_collection.find_one({"session_id": session_id})
+    if not session_data:
+        return redirect("/login")
+
+    user = session_data["user"]
+
+    if request.method == 'POST':
+        bio = request.form.get("bio", "")
+        avatar_url = request.form.get("avatar_url", "")
+        user_collection.update_one({"username": user}, {"$set": {"bio": bio, "avatar_url": avatar_url}})
+        return redirect(f"/profile/{user}")
+
+    user_data = user_collection.find_one({"username": user})
+    return render_template("edit_profile.html", user_data=user_data)
+
+@app.route('/message/<username>', methods=['GET', 'POST'])
+def send_message(username):
+    session_id = request.cookies.get("session_id", None)
+    if not session_id:
+        return redirect("/login")
+
+    session_data = session_db.session_collection.find_one({"session_id": session_id})
+    if not session_data:
+        return redirect("/login")
+
+    user = session_data["user"]
+
+    if request.method == 'POST':
+        message_text = request.form.get("message", "").strip()
+        if message_text:
+            message = {
+                "sender": user,
+                "receiver": username,
+                "message": message_text,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            messages_collection.insert_one(message)
+            return redirect(f"/message/{username}")
+
+    messages = list(messages_collection.find({
+        "$or": [
+            {"sender": user, "receiver": username},
+            {"sender": username, "receiver": user}
+        ]
+    }))
+
+    return render_template("messages.html", messages=messages, user=user, contact=username)
