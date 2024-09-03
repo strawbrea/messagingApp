@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Board</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f3f4;
+            color: #6a5d80;
+        }
+
+        .footer {
+            background-color: #e2d3f5;
+        }
+
+        .navbar {
+            background-color: #e2d3f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            margin-bottom: 1rem;
+            color: #6a5d80;
+        }
+
+        .btn-primary {
+            background-color: #bba4d3;
+            border-color: #bba4d3;
+        }
+
+        .btn-primary:hover {
+            background-color: #9c85b5;
+            border-color: #9c85b5;
+        }
+
+        .form-control {
+            border-color: #d1c4e9;
+        }
+
+        .card {
+            background-color: #faf4ff;
+            border-radius: 15px;
+        }
+
+        .alert {
+            background-color: #ecdaf2;
+            border-color: #dabcef;
+        }
+
+        .user-info {
+            margin-left: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <a class="navbar-brand" href="#">Community Board!</a>
+        <div class="user-info">
+            User = {{user}} (<a href="/logout">Logout</a>)
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <h1>Quotes</h1>
+        <hr>
+        <!-- Search Form -->
+        <form action="/search" method="get" class="mb-3">
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" name="search_term" placeholder="Search quotes...">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+
+        <!-- Display search results if present -->
+        {% if data %}
+        <h2>Search Results</h2>
+        <div class="card">
+            <div class="card-header">Results</div>
+            <ul class="list-group list-group-flush">
+                {% for item in data %}
+                <li class="list-group-item">
+                    [{{ item["date"] }}] [{{ item["owner"] }}] {{ item["text"] }} <em>-- {{ item["author"] }}</em>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <a href="/quotes" class="btn btn-link">Back to quotes</a>
+        {% else %}
+        <!-- No search results found -->
+        {% if request.args.get('search_term') %}
+        <div class="alert alert-warning" role="alert">
+            No quotes found matching your search criteria.
+        </div>
+        {% endif %}
+
+        <!-- Public Feed Section -->
+        <h2>Public Feed</h2>
+        <div class="card">
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for item in public_quotes %}
+                    <li class="list-group-item">
+                        [{{ item["date"] }}] [{{ item["owner"] }}]
+                        {% if not item["disable_comments"] %}
+                        <a href="/quote/{{ item['_id'] }}">{{ item["text"] }}</a>
+                        {% else %}
+                        {{ item["text"] }}
+                        {% endif %}
+                        <em>-- {{ item["author"] }}</em>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- My Quotes Section -->
+        <h2>My Quotes</h2>
+        <div class="card">
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for item in my_quotes %}
+                    <li class="list-group-item">
+                        [{{ item["date"] }}] [{{ item["owner"] }}] <a href="/quote/{{ item['_id'] }}">{{ item["text"]
+                            }}</a> <em>-- {{ item["author"] }}</em>
+                        [
+                        <a href="/edit/{{ item['_id'] }}"><i class="material-icons">mode_edit</i></a>
+                        <a href="/delete/{{ item['_id'] }}"
+                            onclick="return confirm('Are you sure you want to delete this quote?');"><i
+                                class="material-icons">delete</i></a>
+                        ]
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <a href="/add" class="btn btn-primary mt-4">Add a new quote!</a>
+        <hr />
+        <div class="footer py-3 mt-4">
+        </div>
+    </div>
+</body>
+
+</html>
